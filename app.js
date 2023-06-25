@@ -1,25 +1,41 @@
 const gameBoard = ((numberOfRows, numberOfCols) => {
-    const boardState = [];
+    let boardState = [];
 
-    for (let i = 0; i < numberOfRows; i++) {
-        const row = [];
-        for (let j = 0; j < numberOfCols; j++) {
-            row.push("");
+    const buildBoard = () => {
+        for (let i = 0; i < numberOfRows; i++) {
+            const row = [];
+            for (let j = 0; j < numberOfCols; j++) {
+                row.push("");
+            }
+            boardState.push(row);
         }
-        boardState.push(row);
-    }
+    };
+
+    buildBoard();
+
+    const resetBoard = () => {
+        boardState = [];
+        buildBoard();
+    };
 
     const getBoardState = () => boardState;
 
-    const addMarkerToBoard = (marker, row, column) => {
+    const isCellAvailable = (row, column) => {
         if (boardState[row][column] === "") {
+            return true;
+        }
+        return false;
+    };
+
+    const addMarkerToBoard = (marker, row, column) => {
+        if (isCellAvailable(row, column)) {
             boardState[row][column] = marker;
             return true;
         }
         return false;
     };
 
-    return { getBoardState, addMarkerToBoard };
+    return { getBoardState, addMarkerToBoard, resetBoard };
 })(3, 3);
 
 
@@ -39,11 +55,13 @@ const game = ((player1, player2, gameBoard) => {
     let isGameOver = false;
     let currentPlayer; 
 
-    const setFirstPlayerToPlay = (() => {
+    const setFirstPlayerToPlay = () => {
         const players = [player1, player2];
         const playerIndex = Math.floor(Math.random() * players.length);
         currentPlayer = players[playerIndex];
-    })();
+    };
+
+    setFirstPlayerToPlay();
 
     const togglePlayerTurn = () => {
         if (currentPlayer === player1) {
@@ -53,8 +71,8 @@ const game = ((player1, player2, gameBoard) => {
         }
     };
 
-    const getCurrentTurn = () => {
-        return `It's ${currentPlayer.getName()} turn!`;
+    const getCurrentPlayer = () => {
+        return currentPlayer;
     };
 
     const isWin = (cellsLine, marker) => {
@@ -105,30 +123,57 @@ const game = ((player1, player2, gameBoard) => {
     };
 
     const playRound = (rowPosition, colPosition) => {
-        if (isGameOver) return;
-        console.log(getCurrentTurn());
+        if (isGameOver) return { success: false, msg: "Game is already over" };
         const successfulPlacement = gameBoard.addMarkerToBoard(currentPlayer.getMarker(), rowPosition, colPosition);
-        console.log(gameBoard.getBoardState());
-        if (!successfulPlacement) return;
+        if (!successfulPlacement) return { success: false, msg: "This cell is already taken" };
         if (isThereAWinner()) {
             isGameOver = true;
-            return `${currentPlayer.getName()} won!!`;
+            return { success: true, msg: `${currentPlayer.getName()} won!!` };
         }
         turns++;
-        if (turns === 8) {
+        if (turns === 9) {
             isGameOver = true;
-            return "Draw!";
+            return { success: true, msg: "Draw!!" };
         }
         togglePlayerTurn();
+        return  { success: true }
     };
 
-    return { playRound };
+    const resetGame = () => {
+        gameBoard.resetBoard();
+        turns = 0;
+        isGameOver = false;
+        setFirstPlayerToPlay();
+    };
+
+    return { playRound, getCurrentPlayer, resetGame };
 })(player1, player2, gameBoard);
 
 
-game.playRound(0, 1);
-game.playRound(1, 2);
-game.playRound(0, 0);
-game.playRound(1, 0);
-game.playRound(2, 0);
-game.playRound(1, 1);
+const displayController = (() => {
+    const cellButtons = document.querySelectorAll(".cell");
+    const resetGameBtn = document.querySelector(".reset-btn");
+
+    const fillCell = (event) => {
+        const cellRow = Number(event.target.getAttribute("data-row"));
+        const cellColumn = Number(event.target.getAttribute("data-column"));
+        const currentPlayer = game.getCurrentPlayer();
+
+        const { success, msg } = game.playRound(cellRow, cellColumn);
+         if (success) {
+            event.target.textContent = currentPlayer.getMarker();
+        } 
+        console.log(msg);
+    };
+    
+    cellButtons.forEach(cellButton => {
+        cellButton.addEventListener("click", fillCell);
+    });
+
+    resetGameBtn.addEventListener("click", (event) => {
+        game.resetGame();
+        cellButtons.forEach(cellButton => {
+            cellButton.textContent = "";
+        });
+    });
+})();
