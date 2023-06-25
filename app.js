@@ -154,20 +154,31 @@ const displayController = (() => {
     const cellButtons = document.querySelectorAll(".cell");
     const resetGameBtn = document.querySelector(".reset-btn");
 
+    const catIcon = document.querySelector(".cat");
+    const dogIcon = document.querySelector(".dog");
+
     const fillCell = (event) => {
+        console.log(event.target);
+        // event bubbling and capturing to the svg icons >:(
+        if (event.target.className !== "cell") return;
         const cellRow = Number(event.target.getAttribute("data-row"));
         const cellColumn = Number(event.target.getAttribute("data-column"));
         const currentPlayer = game.getCurrentPlayer();
-
+        console.log({ target: event.target} );
         const { success, msg } = game.playRound(cellRow, cellColumn);
          if (success) {
-            event.target.textContent = currentPlayer.getMarker();
+            if (currentPlayer.getMarker() === "X") {
+                event.target.appendChild(catIcon.cloneNode(true));
+            } else {
+                event.target.appendChild(dogIcon.cloneNode(true));
+            }
+            // event.target.textContent = currentPlayer.getMarker();
         } 
         console.log(msg);
     };
     
     cellButtons.forEach(cellButton => {
-        cellButton.addEventListener("click", fillCell);
+        cellButton.addEventListener("click", fillCell, true);
     });
 
     resetGameBtn.addEventListener("click", (event) => {
